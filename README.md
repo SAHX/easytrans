@@ -4,11 +4,11 @@
 ## 背景
 在Mac环境中没有找到很好的、简单的、能够符合自己需求的视频转码工具，特别是针对那些，需在移动端播放的视频的低码率转码，所以就自己动手搞了一个，方便运营人员可以简单粗暴的转码视频。
 
-<div style="text-align:center">
-	<img src="./static/easytrans01.png" style="width:350px"/>
-	<img src="./static/easytrans02.png" style="width:350px"/>
-	<img src="./static/easytrans03.png" style="width:350px"/>
-</div>
+<p align="center">
+	<img src="./static/easytrans01.png" width="350"/>
+	<img src="./static/easytrans02.png" width="350"/>
+	<img src="./static/easytrans03.png" width="350"/>
+</p>
 
 ## 注意：
 easytrans依赖于[ffmpeg](https://github.com/FFmpeg/FFmpeg)，请先在Mac上ffmpeg。可以使用[homebrew](https://brew.sh/)来安装：`brew install ffmpeg`
