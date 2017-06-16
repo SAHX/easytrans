@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="UTF-8">
+    <title>easytrans视频转码</title>
+    <script src="./lib/vue/vue.min.js"></script>
+    <link rel="stylesheet" href="./lib/iview/styles/iview.css">
+    <script src="./lib/iview/iview.min.js"></script>
+    <style>
+        .container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 40px
+        }
+
+        .demo-spin-icon-load {
+            animation: ani-demo-spin 1s linear infinite;
+        }
+
+        @keyframes ani-demo-spin {
+            from {
+                transform: rotate(0deg);
+            }
+            50% {
+                transform: rotate(180deg);
+            }
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .ivu-modal {
+            top: 20px
+        }
+
+        .translate-info {
+            width: 100%;
+            text-align: start;
+            padding: 30px 10px;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="app">
+        <div class="container">
+            <div style="width:350px;">
+                <div class="ivu-upload" v-show="!translating">
+                    <div class="ivu-upload ivu-upload-drag" id="uploadDrag">
+                        <input id="fileInput" type="file" accept="video/mp4" multiple="multiple" class="ivu-upload-input">
+                        <div style="padding: 20px 0px;"><i class="ivu-icon ivu-icon-ios-refresh" style="font-size: 52px; color: rgb(51, 153, 255);"></i>
+                            <p style="margin-top:10px;">点击或将文件拖拽到这里处理</p>
+                        </div>
+                    </div>
+                </div>
+
+                <Spin v-show="translating">
+                    <Icon type="load-b" size=18 class="demo-spin-icon-load"></Icon>
+                    <div>正在处理...</div>
+                </Spin>
+
+            </div>
+            <div class="translate-info" v-show="translateInfo">
+                <p>处理信息：</p>
+                <p style="color:#9ea7b4;font-size:12px">
+                    {{translateInfo}}
+                </p>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        let vm = new Vue({
+            el: '#app',
+            data: {
+                fileName: '',
+                filePath: '',
+                fileSize: 0,
+                fileType: '',
+                kbps: 300,
+                translating: false,
+                translateInfo: ''
+            },
+            computed: {
+                rename: function () {
+                    return this.fileName + '.[compiled].' + this.fileType;
+                },
+                savePath: function () {
+                    return this.filePath + this.rename;
+                }
+            },
+            methods: {
+                handleFIle: function (file) {
+                    let fileType = file.type.substr(file.type.indexOf('/') + 1);
+                    if (fileType !== 'mp4') {
+                        this.$Message.error({
+                            content: '文件格式错误，请选择mp4格式的视频文件！',
+                            duration: 3
+                        });
+                        return
+                    }
+                    let fileName = file.name.substring(0, file.name.indexOf(fileType) - 1)
+                    let filePath = file.path.substring(0, file.path.indexOf(file.name))
+                    let fileSize = this.formatFileSize(file.size);
+                    this.fileName = fileName;
+                    this.filePath = filePath;
+                    this.fileSize = fileSize;
+                    this.fileType = fileType;
+                    this.translate();
+                },
+                formatFileSize: function (fileSize) {
+                    if (fileSize < 1024) {
+                        return fileSize + 'B';
+                    } else if (fileSize < (1024 * 1024)) {
+                        var temp = fileSize / 1024;
+                        temp = temp.toFixed(2);
+                        return temp + 'KB';
+                    } else if (fileSize < (1024 * 1024 * 1024)) {
+                        var temp = fileSize / (1024 * 1024);
+                        temp = temp.toFixed(2);
+                        return temp + 'MB';
+                    } else {
+                        var temp = fileSize / (1024 * 1024 * 1024);
+                        temp = temp.toFixed(2);
+                        return temp + 'GB';
+                    }
+                },
+                translate: function () {
+                    let exec = require('child_process').exec;
+                    let spawn = require('child_process').spawn;
+                    let _this = this;
+
+                    exec('/usr/local/bin/ffmpeg -h', function (err, stdout, stderr) {
+                        //判断是否安装了ffmpeg
+                        if (err === null) {
+                            _this.translating = true;
+
+                            //原始文件地址
+                            let OriFliePath = _this.filePath + _this.fileName + '.' + _this.fileType
+
+                            let ffmpeg = spawn('/usr/local/bin/ffmpeg', ['-i', OriFliePath, '-b:v', _this.kbps + 'k', _this.savePath]);
+                            // 捕获标准输出并将其打印到控制台 
+                            ffmpeg.stdout.on('data', function (data) {
+                                _this.translateInfo = data;
+                            });
+                            // 捕获标准错误输出并将其打印到控制台 
+                            ffmpeg.stderr.on('data', function (data) {
+                                _this.translateInfo = data.toString();
+
+                                if (data.toString().indexOf('already exists. Overwrite ? [y/N]') > 0) {
+                                    _this.$Modal.confirm({
+                                        title: '警告',
+                                        content: '转化后的文件' + _this.rename + '在该目录已存在，是否覆盖？',
+                                        width: 100,
+                                        onOk: function () {
+                                            ffmpeg.stdin.write('y');   // 写入数据
+                                            ffmpeg.stdin.end();
+                                        },
+                                        onCancel: function () {
+                                            ffmpeg.stdin.write('N');   // 写入数据
+                                            ffmpeg.stdin.end();
+                                            _this.translating = false;
+                                        }
+                                    })
+                                }
+                            });
+                            // 注册子进程关闭事件 
+                            ffmpeg.on('exit', function (code, signal) {
+                                _this.translating = false;
+                                _this.$Notice.success({
+                                    title: '通知',
+                                    desc: '文件处理已结束，处理后的文件名为：' + _this.rename,
+                                    duration: 0
+                                });
+                            });
+                        } else {
+                            if (err.toString().indexOf('Command not found') > 0) {
+                                _this.$Notice.error({
+                                    title: '错误：未安装ffmpeg!',
+                                    desc: '请先在电脑中安装ffmpeg：brew install ffmpeg',
+                                    duration: 0
+                                });
+                            }
+                        }
+                    })
+
+                }
+            }
+        })
+
+        // 点击
+        let domUpload = document.getElementsByClassName('ivu-upload ivu-upload-drag')[0];
+        let domUploadInput = document.getElementById('fileInput');
+        let drag = document.getElementById('uploadDrag');
+        domUpload.onclick = function () {
+            domUploadInput.click();
+        }
+        function fileSelect(e) {
+            let files = this.files;
+            if (files.length > 1) {
+                vm.$Message.error({
+                    content: '只能同时处理一个文件！',
+                    duration: 3
+                });
+                return
+            }
+            vm.handleFIle(files[0])
+        }
+        document.getElementById('fileInput').onchange = fileSelect;
+
+        // 拖拽
+        function dropHandler(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            var files = e.dataTransfer.files;
+            if (files.length > 1) {
+                vm.$Message.error({
+                    content: '只能同时处理一个文件！',
+                    duration: 3
+                });
+                return
+            }
+            vm.handleFIle(files[0])
+        }
+        function dragOverHandler(e) {
+            e.stopPropagation();
+            e.preventDefault();
+            e.dataTransfer.dragEffect = 'copy';
+        }
+        drag.addEventListener('drop', dropHandler, false);
+        drag.addEventListener('dragover', dragOverHandler, false);
+    </script>
+</body>
+
+</html>

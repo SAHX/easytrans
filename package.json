@@ -1,0 +1,21 @@
+{
+  "name": "easytrans",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "dependencies": {
+    "electron": "^1.6.11"
+  },
+  "devDependencies": {
+    "electron-packager": "^8.7.1"
+  },
+  "scripts": {
+    "dev": "electron .",
+    "build": "electron-packager . --overwrite"
+  },
+  "author": {
+    "name": "SAHX",
+    "email": "tangjiang69@163.com"
+  },
+  "license": "MIT"
+}
