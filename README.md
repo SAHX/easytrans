@@ -11,7 +11,7 @@
 </p>
 
 ## 注意：
-easytrans依赖于[ffmpeg](https://github.com/FFmpeg/FFmpeg)，请先在Mac上ffmpeg。可以使用[homebrew](https://brew.sh/)来安装：`brew install ffmpeg`
+easytrans依赖于[ffmpeg](https://github.com/FFmpeg/FFmpeg)，请先在Mac上安装ffmpeg。可以使用[homebrew](https://brew.sh/)来安装：`brew install ffmpeg`
 
 ## 运行指令
 1. 安装依赖：`npm install`
